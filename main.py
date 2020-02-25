@@ -21,8 +21,10 @@ if __name__ == '__main__':
     admins = constants['admins']
     opened = True
 
-    # Массив user_id, которые прошли тест. Нужно для того, чтобы каждый раз не лезть в БД за
-    # ответом "Закончил-ли пользователь тест?"
+    # Массив ID пользователей, которые уже начали тест, но не закончили его. Чтобы не лезть в базу за проверкой
+    started_users = []
+    # Словарь user_id, которые прошли тест. Нужно для того, чтобы каждый раз не лезть в БД за
+    # ответом "Закончил-ли пользователь тест? Есть-ли у нас его телефон? А также пауза между сообщениями - 1.1 секунда"
     finished = {}
     finished = defaultdict(lambda: {
                            'finished': False
@@ -41,13 +43,18 @@ if __name__ == '__main__':
                                  , 'began': 0
                                  , 'phone': 0}
                         , quote)
+    dbRequests.answer_validation('1', 539249298, cur)
 
 
 def ask_question(user_id):
     global cur
-    quest_text, answers = dbRequests.ask_question(user_id, cur)
-    answers_keyboard = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True,
-                                                         row_width=1)
+    quest_text, answers = dbRequests.ask_question(user_id, cur) or [None, None]
+    print(quest_text, '\n', answers)
+
+    if not quest_text and not answers:
+        return
+
+    answers_keyboard = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True)
     for answer in answers:
         answers_keyboard.row(answer)
     bot.send_message(chat_id=user_id, text=quest_text, reply_markup=answers_keyboard)
@@ -76,11 +83,15 @@ def send_hello(message):
         , reply_markup=start_message)
 
 
+# Функция пропускает только ключевые слова
 @bot.message_handler(content_types=['text'])
-def get_text(message):
+def get_text_commands(message):
     if not opened:
         return
-    if message.text == 'Готов':
+    if message.text == 'Готов' \
+            and message.from_user.id not in started_users\
+            or dbRequests.check_user_in_database(message.from_user.id, cur) == 'User not exists':
+        started_users.append(message.from_user.id)
         dbRequests.create_user(
             message.from_user.id
             , message.from_user.username or 'hidden'
@@ -89,6 +100,13 @@ def get_text(message):
             , cur
         )
         ask_question(message.from_user.id)
+
+
+@bot.message_handler(content_types=['text'])
+def get_text(message):
+    if not opened:
+        return
+    if message.from_user.id not in started_users:
         return
     if message.from_user.id in finished and finished[message.from_user.id]['finished']:
         return
