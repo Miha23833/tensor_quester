@@ -49,8 +49,18 @@ if __name__ == '__main__':
                         , quote)
 
 
-def ask_question(user_id):
+def complete_test(user_id, time):
     global cur
+    finished[user_id]['finished'] = True
+    dbRequests.set_finish_time(user_id, time, cur)
+    bot.send_message(chat_id=user_id, text='Ты закончил тест', reply_markup=telebot.types.ReplyKeyboardRemove())
+
+
+def ask_question(user_id, time):
+    global cur
+    if (dbRequests.answered_question_count(user_id, cur) or 0) >= constants['question_pull']:
+        complete_test(user_id, time)
+        return
     quest_text, answers = dbRequests.ask_question(user_id, cur) or [None, None]
     print(quest_text, '\n', answers)
 
@@ -102,7 +112,7 @@ def get_text_commands(message):
             , message.date
             , cur
         )
-        ask_question(message.from_user.id)
+        ask_question(message.from_user.id, message.date)
         return
     get_text(message)
 
@@ -119,7 +129,7 @@ def get_text(message):
     res = dbRequests.answer_validation(message.text, message.from_user.id, cur)
     if res == 'Failed':
         return
-    ask_question(message.from_user.id)
+    ask_question(message.from_user.id, message.date)
 
 
 bot.polling(none_stop=True)
