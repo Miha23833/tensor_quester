@@ -38,7 +38,7 @@ def ask_question(user_id, cur):
         FROM "Questions"
         WHERE "QuestID" not in 
             (
-                SELECT UNNEST (answered)
+                SELECT UNNEST ("true_answers" || "false_answers")
                 FROM "users"
                 WHERE "userid" = %s
                 UNION 
@@ -99,7 +99,7 @@ def answer_validation(text, user_id, cur):
         [text, user_id]
     )
     if not cur.description:
-        return None
+        return 'Failed'
     row = cur.fetchone()
     if row.Result == 'Right':
         cur.execute(
@@ -112,7 +112,9 @@ def answer_validation(text, user_id, cur):
             , [row.QuestID, user_id]
         )
         if not cur.description:
-            return 'Not success'
+            return 'Failed'
+        else:
+            return 'Success'
     elif row.Result == 'Wrong':
         cur.execute(
             """
@@ -124,4 +126,18 @@ def answer_validation(text, user_id, cur):
             , [row.QuestID, user_id]
         )
         if not cur.description:
-            return None
+            return 'Failed'
+        else:
+            return 'Success'
+
+
+def get_not_finished_users(cur):
+    cur.execute(
+        """
+        Select array_agg("userid") as "Users"
+        FROM "users"
+        """
+    )
+    if not cur.description:
+        return 'Failed'
+    return cur.fetchone().Users
