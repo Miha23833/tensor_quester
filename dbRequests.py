@@ -34,7 +34,7 @@ def ask_question(user_id, cur):
         SELECT 
             "QuestID"
             , "Text"
-            , "Answer" || "FalseAnswers" as "Answers" 
+            , "Answer" || "FalseAnswers" as "Answers"
         FROM "Questions"
         WHERE "QuestID" not in 
             (
@@ -50,7 +50,7 @@ def ask_question(user_id, cur):
         , [user_id]
     )
     if not cur.description:
-        return
+        return 'Failed'
     question = random.choice(list(cur))
     cur.execute(
         """
@@ -129,6 +129,8 @@ def answer_validation(text, user_id, cur):
             return 'Failed'
         else:
             return 'Success'
+    else:
+        return 'Failed'
 
 
 def get_not_finished_users(cur):
@@ -141,3 +143,32 @@ def get_not_finished_users(cur):
     if not cur.description:
         return 'Failed'
     return cur.fetchone().Users
+
+
+def answered_question_count(user_id, cur):
+    cur.execute(
+        """
+        SELECT 
+        CASE
+            WHEN array_length("true_answers" || "false_answers", 1) NOTNULL
+            THEN array_length("true_answers" || "false_answers", 1)
+            ELSE 0 END as "Count"
+        FROM "users"
+        WHERE "userid" = %s        
+        """,
+        [user_id]
+    )
+    if not cur.description:
+        return 'Failed'
+    return cur.fetchone().Count
+
+
+def set_finish_time(user_id, time, cur):
+    cur.execute(
+        """
+        UPDATE users
+        SET finish_time = to_timestamp(%s)
+        WHERE "userid" = %s
+        """,
+        [time, user_id]
+    )
