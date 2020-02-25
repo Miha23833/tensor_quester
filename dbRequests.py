@@ -62,3 +62,66 @@ def ask_question(user_id, cur):
     )
     random.shuffle(question.Answers)
     return question.Text, question.Answers
+
+
+def check_user_in_database(user_id, cur):
+    cur.execute(
+        """
+        SELECT 
+          CASE WHEN "userid" = %s
+            THEN 'User exists'
+          ELSE 'User not exists' end 
+        FROM "users"
+        """
+        , [user_id]
+    )
+    if not cur.description:
+        return None
+    return
+
+
+def answer_validation(text, user_id, cur):
+    cur.execute(
+        """
+        SELECT 
+          CASE 
+            WHEN lower("Answer") = lower(%s::text)
+              THEN 'Right'
+            ELSE 'Wrong' 
+          END as "Result"
+          , "QuestID"
+        FROM "users" u
+        LEFT JOIN "Questions" q
+          ON ( q."QuestID" = u."current_quest" )
+        WHERE
+          u."userid" = %s
+        """,
+        [text, user_id]
+    )
+    if not cur.description:
+        return None
+    row = cur.fetchone()
+    if row.Result == 'Right':
+        cur.execute(
+            """
+            UPDATE "users"
+            SET "true_answers" = "true_answers" || %s::bigint
+            WHERE "userid" = %s
+            RETURNING 'Success' as "Result"
+            """
+            , [row.QuestID, user_id]
+        )
+        if not cur.description:
+            return 'Not success'
+    elif row.Result == 'Wrong':
+        cur.execute(
+            """
+            UPDATE "users"
+            SET "false_answers" = "false_answers" || %s::bigint
+            WHERE "userid" = %s
+            RETURNING 'Success' as "Result"
+            """
+            , [row.QuestID, user_id]
+        )
+        if not cur.description:
+            return None
