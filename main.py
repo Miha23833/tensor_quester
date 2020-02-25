@@ -23,6 +23,10 @@ if __name__ == '__main__':
 
     # Массив ID пользователей, которые уже начали тест, но не закончили его. Чтобы не лезть в базу за проверкой
     started_users = []
+    users = dbRequests.get_not_finished_users(cur)
+    if users and isinstance(users, list):
+        started_users = users
+        print(started_users)
     # Словарь user_id, которые прошли тест. Нужно для того, чтобы каждый раз не лезть в БД за
     # ответом "Закончил-ли пользователь тест? Есть-ли у нас его телефон? А также пауза между сообщениями - 1.1 секунда"
     finished = {}
@@ -43,7 +47,6 @@ if __name__ == '__main__':
                                  , 'began': 0
                                  , 'phone': 0}
                         , quote)
-    dbRequests.answer_validation('1', 539249298, cur)
 
 
 def ask_question(user_id):
@@ -100,16 +103,23 @@ def get_text_commands(message):
             , cur
         )
         ask_question(message.from_user.id)
+        return
+    get_text(message)
 
 
-@bot.message_handler(content_types=['text'])
 def get_text(message):
     if not opened:
         return
-    if message.from_user.id not in started_users:
+    if message.from_user.id not in started_users\
+            or dbRequests.check_user_in_database(message.from_user.id, cur) == 'User not exists':
         return
     if message.from_user.id in finished and finished[message.from_user.id]['finished']:
         return
+
+    res = dbRequests.answer_validation(message.text, message.from_user.id, cur)
+    if res == 'Failed':
+        return
+    ask_question(message.from_user.id)
 
 
 bot.polling(none_stop=True)
