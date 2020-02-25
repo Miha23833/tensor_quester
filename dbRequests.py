@@ -5,11 +5,11 @@ import random
 def create_user(user_id: int, username: str, name: str, start: int, cur):
     cur.execute(
         """
-        INSERT INTO "Users"(
-        "UserID"
-        , "UserName"
-        , "Name"
-        , "StartTime"
+        INSERT INTO "users"(
+        "userid"
+        , "username"
+        , "fullname"
+        , "start_time"
         )
         VALUES (
         %s
@@ -30,16 +30,35 @@ def create_user(user_id: int, username: str, name: str, start: int, cur):
 
 def ask_question(user_id, cur):
     cur.execute(
-        """
-        SELECT * FROM "Questions" q 
-        WHERE "QuestID"::text NOT IN (
-            SELECT 
-                JSONB_OBJECT_KEYS("Questions"::jsonb)
-            FROM 
-                "Users" u 
-            WHERE u."UserID" = 539249298
+        """        
+        SELECT 
+            "QuestID"
+            , "Text"
+            , "Answer" || "FalseAnswers" as "Answers" 
+        FROM "Questions"
+        WHERE "QuestID" not in 
+            (
+                SELECT UNNEST (answered)
+                FROM "users"
+                WHERE "userid" = %s
+                UNION 
+                SELECT current_quest
+                FROM "users"
+                WHERE CURRENT_QUEST NOTNULL
             )
         """
+        , [user_id]
     )
-    try:
-        print(cur.fetchall())
+    if not cur.description:
+        return
+    question = random.choice(list(cur))
+    cur.execute(
+        """
+        UPDATE "users"
+        SET "current_quest" = %s
+        WHERE "userid" = %s
+        """
+        , [question.QuestID, user_id]
+    )
+    random.shuffle(question.Answers)
+    return question.Text, question.Answers

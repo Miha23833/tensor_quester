@@ -1,6 +1,7 @@
 from collections import defaultdict
 import dbRequests
 import psycopg2
+import psycopg2.extras as extras
 import telebot
 import json
 import time
@@ -16,9 +17,9 @@ if __name__ == '__main__':
                             , port=constants['port']
                             , host=constants['host'])
     conn.autocommit = True
-    cur = conn.cursor()
-    opened = False
+    cur = conn.cursor(cursor_factory=extras.NamedTupleCursor)
     admins = constants['admins']
+    opened = True
 
     # Массив user_id, которые прошли тест. Нужно для того, чтобы каждый раз не лезть в БД за
     # ответом "Закончил-ли пользователь тест?"
@@ -44,8 +45,12 @@ if __name__ == '__main__':
 
 def ask_question(user_id):
     global cur
-    dbRequests.ask_question(user_id, cur)
-
+    quest_text, answers = dbRequests.ask_question(user_id, cur)
+    answers_keyboard = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True,
+                                                         row_width=1)
+    for answer in answers:
+        answers_keyboard.row(answer)
+    bot.send_message(chat_id=user_id, text=quest_text, reply_markup=answers_keyboard)
 
 
 @bot.message_handler(commands=['open', 'close'])
