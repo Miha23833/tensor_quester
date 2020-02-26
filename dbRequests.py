@@ -2,6 +2,17 @@ import psycopg2
 import random
 
 
+def valid_table(columns, description):
+    print(columns)
+    description = [desc[0] for desc in description]
+    if not description:
+        return None
+    if set(columns).issubset(description):
+        return True
+    else:
+        return False
+
+
 def create_user(user_id: int, username: str, name: str, start: int, cur):
     cur.execute(
         """
@@ -49,9 +60,10 @@ def ask_question(user_id, cur):
         """
         , [user_id]
     )
-    if not cur.description:
+    if not valid_table(['QuestID', 'Text', 'Answers'], cur.description):
         return 'Failed'
     question = random.choice(list(cur))
+
     cur.execute(
         """
         UPDATE "users"
@@ -70,13 +82,13 @@ def check_user_in_database(user_id, cur):
         SELECT 
           CASE WHEN "userid" = %s
             THEN 'User exists'
-          ELSE 'User not exists' end 
+          ELSE 'User not exists' end as "Check"
         FROM "users"
         """
         , [user_id]
     )
-    if not cur.description:
-        return None
+    if not valid_table(['Check'], cur.description):
+        return 'Failed'
     return
 
 
@@ -98,7 +110,7 @@ def answer_validation(text, user_id, cur):
         """,
         [text, user_id]
     )
-    if not cur.description:
+    if not valid_table(['Result', 'QuestID'], cur.description):
         return 'Failed'
     row = cur.fetchone()
     if row.Result == 'Right':
@@ -111,7 +123,7 @@ def answer_validation(text, user_id, cur):
             """
             , [row.QuestID, user_id]
         )
-        if not cur.description:
+        if not valid_table(['Result'], cur.description):
             return 'Failed'
         else:
             return 'Success'
@@ -125,7 +137,7 @@ def answer_validation(text, user_id, cur):
             """
             , [row.QuestID, user_id]
         )
-        if not cur.description:
+        if not valid_table(['Result'], cur.description):
             return 'Failed'
         else:
             return 'Success'
@@ -140,7 +152,7 @@ def get_not_finished_users(cur):
         FROM "users"
         """
     )
-    if not cur.description:
+    if not valid_table(['Users'], cur.description):
         return 'Failed'
     return cur.fetchone().Users
 
@@ -158,8 +170,8 @@ def answered_question_count(user_id, cur):
         """,
         [user_id]
     )
-    if not cur.description:
-        return 'Failed'
+    if not valid_table(["Count"], cur.description):
+        return None
     return cur.fetchone().Count
 
 
