@@ -4,9 +4,9 @@ import random
 
 
 def valid_table(columns, description):
-    description = [desc[0] for desc in description]
     if not description:
         return None
+    description = [desc[0] for desc in description]
     if set(columns).issubset(description):
         return True
     else:
@@ -116,6 +116,7 @@ def answer_validation(text, user_id, cur):
         row = cur.fetchone()
     except psycopg2.ProgrammingError as err:
         print('slovil')
+        return
     if row.Result == 'Right':
         cur.execute(
             """
