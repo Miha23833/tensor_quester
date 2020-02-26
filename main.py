@@ -63,9 +63,11 @@ def ask_question(user_id, datetime):
             and (user_id not in finished or finished[user_id]['finished'] is False):
         complete_test(user_id, datetime)
         return
-    quest_text, answers = dbRequests.ask_question(user_id, cur) or None
+    quest_text, answers = dbRequests.ask_question(user_id, cur)
 
-    if not quest_text and not answers:
+    if not answers:
+        return
+    if not quest_text:
         return
 
     answers_keyboard = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True)
