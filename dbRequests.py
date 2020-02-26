@@ -1,9 +1,9 @@
 import psycopg2
+import logging
 import random
 
 
 def valid_table(columns, description):
-    print(columns)
     description = [desc[0] for desc in description]
     if not description:
         return None
@@ -61,7 +61,7 @@ def ask_question(user_id, cur):
         , [user_id]
     )
     if not valid_table(['QuestID', 'Text', 'Answers'], cur.description):
-        return 'Failed'
+        return 'Failed', None
     question = random.choice(list(cur))
 
     cur.execute(
@@ -112,7 +112,10 @@ def answer_validation(text, user_id, cur):
     )
     if not valid_table(['Result', 'QuestID'], cur.description):
         return 'Failed'
-    row = cur.fetchone()
+    try:
+        row = cur.fetchone()
+    except psycopg2.ProgrammingError as err:
+        print('slovil')
     if row.Result == 'Right':
         cur.execute(
             """
