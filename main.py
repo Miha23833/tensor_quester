@@ -26,11 +26,12 @@ if __name__ == '__main__':
             raise Exception('Variable ' + key + ' not exists')
 
     bot = telebot.TeleBot(constants['TOKEN'])
-    conn = psycopg2.connect(dbname=constants['DB_NAME']
+    conn = psycopg2.connect(constants['DATABASE_URL']
+                            , dbname=constants['DB_NAME']
                             , user=constants['USER']
                             , password=constants['DB_PASSWORD']
                             , port=5432
-                            , host=constants['DB_HOST'])
+                            )
     conn.autocommit = True
     cur = conn.cursor(cursor_factory=extras.NamedTupleCursor)
     admins = constants['BOT_ADMINS']
