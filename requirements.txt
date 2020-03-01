@@ -1,0 +1,2 @@
+pyTelegramBotApi
+psycopg2-binary
