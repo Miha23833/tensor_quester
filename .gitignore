@@ -130,3 +130,7 @@ dmypy.json
 
 # Константы для работы бота
 const.json
+
+# Прочие папки
+.idea
+.vscode
