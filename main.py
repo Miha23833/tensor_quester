@@ -23,6 +23,7 @@ if __name__ == '__main__':
                 continue
             if key == 'questions_count':
                 constants[key] = int(os.environ.get(key))
+                continue
             constants[key] = os.environ.get(key)
         else:
             raise Exception('Variable ' + key + ' not exists')
