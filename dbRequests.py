@@ -123,7 +123,8 @@ def answer_validation(text, user_id, cur):
             UPDATE "users"
             SET "true_answers" = "true_answers" || %s::bigint
             WHERE "userid" = %s
-            AND %s <> all (false_answers)
+            AND %s <> all (true_answers)
+            OR "true_answers" ISNULL
             RETURNING 'Success' as "Result"
             """
             , [row.QuestID, user_id, row.QuestID]
@@ -139,6 +140,7 @@ def answer_validation(text, user_id, cur):
             SET "false_answers" = "false_answers" || %s::bigint
             WHERE "userid" = %s
             AND %s <> all (false_answers)
+            OR "false_answers" ISNULL
             RETURNING 'Success' as "Result"
             """
             , [row.QuestID, user_id, row.QuestID]
