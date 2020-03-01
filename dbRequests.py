@@ -123,9 +123,10 @@ def answer_validation(text, user_id, cur):
             UPDATE "users"
             SET "true_answers" = "true_answers" || %s::bigint
             WHERE "userid" = %s
+            AND %s <> all (false_answers)
             RETURNING 'Success' as "Result"
             """
-            , [row.QuestID, user_id]
+            , [row.QuestID, user_id, row.QuestID]
         )
         if not valid_table(['Result'], cur.description):
             return 'Failed'
@@ -137,9 +138,10 @@ def answer_validation(text, user_id, cur):
             UPDATE "users"
             SET "false_answers" = "false_answers" || %s::bigint
             WHERE "userid" = %s
+            AND %s <> all (false_answers)
             RETURNING 'Success' as "Result"
             """
-            , [row.QuestID, user_id]
+            , [row.QuestID, user_id, row.QuestID]
         )
         if not valid_table(['Result'], cur.description):
             return 'Failed'
