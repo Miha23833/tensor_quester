@@ -5,21 +5,35 @@ import psycopg2.extras as extras
 import telebot
 import json
 import time
+import os
 
 if __name__ == '__main__':
-    with open('const.json', 'r') as file:
-        constants = json.load(file)
     with open('messages.json', 'r') as file:
         messages = json.load(file)
-    bot = telebot.TeleBot(constants['token'])
-    conn = psycopg2.connect(dbname=constants['dbname']
-                            , user=constants['user']
-                            , password=constants['password']
-                            , port=constants['port']
-                            , host=constants['host'])
+
+    constants_keys = ['TOKEN', 'DB_HOST', 'DB_NAME', 'USER', 'PORT', 'DB_PASSWORD', 'DATABASE_URL', 'BOT_ADMINS'
+                      , 'questions_count']
+    constants = dict()
+    config_vars = dict(os.environ.items()).keys()
+
+    for key in constants_keys:
+        if key in config_vars:
+            if key == 'BOT_ADMINS':
+                constants[key] = [int(value) for value in os.environ.get(key).split('|')]
+                continue
+            constants[key] = os.environ.get(key)
+        else:
+            raise Exception('Variable ' + key + ' not exists')
+
+    bot = telebot.TeleBot(constants['TOKEN'])
+    conn = psycopg2.connect(dbname=constants['DB_NAME']
+                            , user=constants['USER']
+                            , password=constants['DB_PASSWORD']
+                            , port=constants['PORT']
+                            , host=constants['DB_HOST'])
     conn.autocommit = True
     cur = conn.cursor(cursor_factory=extras.NamedTupleCursor)
-    admins = constants['admins']
+    admins = constants['BOT_ADMINS']
     opened = True
 
     # Массив ID пользователей, которые уже начали тест, но не закончили его. Чтобы не лезть в базу за проверкой
@@ -79,7 +93,7 @@ def ask_question(user_id, datetime):
 @bot.message_handler(commands=['open', 'close'])
 def open_close(message):
     global opened
-    if message.from_user.id in constants['admins']:
+    if message.from_user.id in constants['BOT_ADMINS']:
         if message.text == '/open':
             opened = True
         elif message.text == '/close':
