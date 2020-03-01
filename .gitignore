@@ -132,5 +132,5 @@ dmypy.json
 const.json
 
 # Прочие папки
-.idea
-.vscode
+.idea/
+.vscode/
