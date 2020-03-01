@@ -29,7 +29,7 @@ if __name__ == '__main__':
     conn = psycopg2.connect(dbname=constants['DB_NAME']
                             , user=constants['USER']
                             , password=constants['DB_PASSWORD']
-                            , port=int(constants['PORT'])
+                            , port=5432
                             , host=constants['DB_HOST'])
     conn.autocommit = True
     cur = conn.cursor(cursor_factory=extras.NamedTupleCursor)
