@@ -118,6 +118,7 @@ def answer_validation(text, user_id, cur):
         print('slovil')
         return
     if not row:
+        print('Failed on get row.Result!')
         return 'Failed'
     if row.Result == 'Right':
         cur.execute(
