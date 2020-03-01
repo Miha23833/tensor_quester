@@ -117,6 +117,8 @@ def answer_validation(text, user_id, cur):
     except psycopg2.ProgrammingError as err:
         print('slovil')
         return
+    if not row:
+        return 'Failed'
     if row.Result == 'Right':
         cur.execute(
             """
