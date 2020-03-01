@@ -21,6 +21,8 @@ if __name__ == '__main__':
             if key == 'BOT_ADMINS':
                 constants[key] = [int(value) for value in os.environ.get(key).split('|')]
                 continue
+            if key == 'questions_count':
+                constants[key] = int(os.environ.get(key))
             constants[key] = os.environ.get(key)
         else:
             raise Exception('Variable ' + key + ' not exists')
