@@ -12,7 +12,7 @@ if __name__ == '__main__':
         messages = json.load(file)
 
     constants_keys = ['TOKEN', 'DB_HOST', 'DB_NAME', 'USER', 'PORT', 'DB_PASSWORD', 'DATABASE_URL', 'BOT_ADMINS'
-                      , 'questions_count']
+        , 'questions_count']
     constants = dict()
     config_vars = dict(os.environ.items()).keys()
 
@@ -75,7 +75,7 @@ def complete_test(user_id, datetime):
 
 def ask_question(user_id, datetime):
     global cur
-    if (dbRequests.answered_question_count(user_id, cur) or 0) >= constants['questions_count']\
+    if (dbRequests.answered_question_count(user_id, cur) or 0) >= constants['questions_count'] \
             and (user_id not in finished or finished[user_id]['finished'] is False):
         complete_test(user_id, datetime)
         return
@@ -116,10 +116,11 @@ def send_hello(message):
         bot.send_message(chat_id=message.from_user.id, text=messages['Already_started'])
         quote[message.from_user.id]['start'] += 1
         return
-    if message.date - finished[message.from_user.id]['msg_time'] < 1:
+    if message.from_user.id in finished[message.from_user.id] \
+            and message.date - finished[message.from_user.id]['msg_time'] < 1:
         finished[message.from_user.id]['msg_time'] = message.date
         return
-    if message.from_user.id in finished:
+    if message.from_user.id in finished and finished['finished']:
         if quote[message.from_user.id]['done'] >= 4:
             return
         bot.send_message(chat_id=message.from_user.id, text=messages['Already_done'])
