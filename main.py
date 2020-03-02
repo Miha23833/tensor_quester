@@ -54,7 +54,8 @@ if __name__ == '__main__':
     # Квота на ответ бота. При достижении лимита бот пропускает сообщения и не реагирует на них. Они
     # разделены по типам и на каждый тип сообщения свой максимум ответов
     quote = {}
-    quote = defaultdict(lambda: dict(ready=0, start=0, done=0, contact=0, closed=0, help=0, began=0, phone=0)
+    quote = defaultdict(lambda: dict(ready=0, start=0, done=0, contact=0, closed=0, help=0, began=0, phone=0
+                                     , wrong_contact=0)
                         , quote)
 
 
@@ -189,7 +190,11 @@ def update_phone(message):
         return
     if quote[message.from_user.id]['contact'] >= 3:
         return
-    if message.from_user.id != message.contact.user_id or not message.contact.user_id:
+    if message.from_user.id != message.contact.user_id:
+        if quote[message.from_user.id]['wrong_contact'] >= 5:
+            return
+        bot.send_message(chat_id=message.from_user.id, text=messages['Wrong_contact'])
+        quote[message.from_user.id]['wrong_contact'] += 1
         return
     if message.from_user.id not in started_users \
             or dbRequests.check_user_in_database(message.from_user.id, cur) == 'User not exists':
