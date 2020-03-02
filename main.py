@@ -120,11 +120,12 @@ def send_hello(message):
             and message.date - finished[message.from_user.id]['msg_time'] < 1:
         finished[message.from_user.id]['msg_time'] = message.date
         return
-    if message.from_user.id in finished and finished['finished']:
+    if message.from_user.id in finished and finished[message.from_user.id]['finished']:
         if quote[message.from_user.id]['done'] >= 4:
             return
         bot.send_message(chat_id=message.from_user.id, text=messages['Already_done'])
         quote[message.from_user.id]['done'] += 1
+        return
     if quote[message.from_user.id]['start'] >= 4:
         return
     start_message = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
