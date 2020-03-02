@@ -109,6 +109,9 @@ def send_hello(message):
         bot.send_message(chat_id=message.from_user.id, text=messages['Closed'])
         quote[message.from_user.id]['closed'] += 1
         return
+    if message.date - finished[message.from_user.id]['msg_time'] < 0.7:
+        finished[message.from_user.id]['msg_time'] = message.date
+        return
     if message.from_user.id in started_users:
         if quote[message.from_user.id]['started'] >= 4:
             return
@@ -128,6 +131,7 @@ def send_hello(message):
         chat_id=message.chat.id
         , text=messages['Hello']
         , reply_markup=start_message)
+    finished[message.from_user.id]['msg_time'] = message.date
     quote[message.from_user.id]['start'] += 1
 
 
@@ -139,6 +143,9 @@ def get_text_commands(message):
             quote[message.from_user.id]['closed'] += 1
             return
         bot.send_message(chat_id=message.from_user.id, text=messages['Closed'])
+        return
+    if message.date - finished[message.from_user.id]['msg_time'] < 0.7:
+        finished[message.from_user.id]['msg_time'] = message.date
         return
     if message.text == 'Готов':
         if quote[message.from_user.id]['ready'] >= 3:
@@ -168,6 +175,7 @@ def get_text_commands(message):
             quote[message.from_user.id]['done'] += 1
             return
         quote[message.from_user.id]['ready'] += 1
+    finished[message.from_user.id]['msg_time'] = message.date
     get_text(message)
 
 
