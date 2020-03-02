@@ -159,7 +159,8 @@ def get_text_commands(message):
             dbRequests.create_user(
                 message.from_user.id
                 , message.from_user.username or 'hidden'
-                , str(message.from_user.first_name) + ' ' + str(message.from_user.last_name)
+                , str(message.from_user.first_name) + ' ' + (
+                message.from_user.last_name if message.from_user.last_name is not None else '[Фамилия отсутствует]')
                 , message.date
                 , cur
             )
