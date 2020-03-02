@@ -113,10 +113,10 @@ def send_hello(message):
         finished[message.from_user.id]['msg_time'] = message.date
         return
     if message.from_user.id in started_users:
-        if quote[message.from_user.id]['started'] >= 4:
+        if quote[message.from_user.id]['start'] >= 4:
             return
         bot.send_message(chat_id=message.from_user.id, text=messages['Already_started'])
-        quote[message.from_user.id]['started'] += 1
+        quote[message.from_user.id]['start'] += 1
         return
     if message.from_user.id in finished:
         if quote[message.from_user.id]['done'] >= 4:
@@ -163,10 +163,10 @@ def get_text_commands(message):
             ask_question(message.from_user.id, message.date)
             return
         elif message.from_user.id in started_users:
-            if quote[message.from_user.id]['started'] >= 4:
+            if quote[message.from_user.id]['start'] >= 4:
                 return
             bot.send_message(chat_id=message.from_user.id, text=messages['Already_started'])
-            quote[message.from_user.id]['started'] += 1
+            quote[message.from_user.id]['start'] += 1
             return
         elif message.from_user.id in finished:
             if quote[message.from_user.id]['done'] >= 4:
