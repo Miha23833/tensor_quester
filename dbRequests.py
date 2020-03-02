@@ -195,3 +195,14 @@ def set_finish_time(user_id, time, cur):
         """,
         [time, user_id]
     )
+
+
+def update_phone(user_id, phone, cur):
+    cur.execute(
+        """
+        UPDATE users
+        SET phone = %s
+        WHERE userid = %s
+        """,
+        [phone, user_id]
+    )

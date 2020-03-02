@@ -45,20 +45,17 @@ if __name__ == '__main__':
     users = dbRequests.get_not_finished_users(cur)
     if users and isinstance(users, list):
         started_users = users
-        print(started_users)
     # Словарь user_id, которые прошли тест. Нужно для того, чтобы каждый раз не лезть в БД за
     # ответом "Закончил-ли пользователь тест? Есть-ли у нас его телефон? А также пауза между сообщениями - 1.1 секунда"
     finished = {}
     finished = defaultdict(lambda: dict(finished=False, phone=None, msg_time=time.time() - 1.1)
                            , finished)
 
+    # Квота на ответ бота. При достижении лимита бот пропускает сообщения и не реагирует на них. Они
+    # разделены по типам и на каждый тип сообщения свой максимум ответов
     quote = {}
-    quote = defaultdict(lambda: dict(start=0, finish=0, contact=0, closed=0, help=0, began=0, phone=0)
+    quote = defaultdict(lambda: dict(ready=0, start=0, done=0, contact=0, closed=0, help=0, began=0, phone=0)
                         , quote)
-
-
-def valid_phone(number):
-    pass
 
 
 def complete_test(user_id, datetime):
@@ -107,26 +104,45 @@ def open_close(message):
 @bot.message_handler(commands=['start'])
 def send_hello(message):
     if not opened:
+        if quote[message.from_user.id]['closed'] >= 3:
+            return
+        bot.send_message(chat_id=message.from_user.id, text=messages['Closed'])
+        quote[message.from_user.id]['closed'] += 1
         return
     if message.from_user.id in started_users:
+        if quote[message.from_user.id]['started'] >= 4:
+            return
         bot.send_message(chat_id=message.from_user.id, text=messages['Already_started'])
+        quote[message.from_user.id]['started'] += 1
         return
     if message.from_user.id in finished:
+        if quote[message.from_user.id]['done'] >= 4:
+            return
         bot.send_message(chat_id=message.from_user.id, text=messages['Already_done'])
+        quote[message.from_user.id]['done'] += 1
+    if quote[message.from_user.id]['start'] >= 4:
+        return
     start_message = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     start_message.row('Готов')
     bot.send_message(
         chat_id=message.chat.id
         , text=messages['Hello']
         , reply_markup=start_message)
+    quote[message.from_user.id]['start'] += 1
 
 
-# Функция пропускает только ключевые слова
+# Функция обрабатывает текстовые сообщения
 @bot.message_handler(content_types=['text'])
 def get_text_commands(message):
     if not opened:
+        if quote[message.from_user.id]['closed'] >= 3:
+            quote[message.from_user.id]['closed'] += 1
+            return
+        bot.send_message(chat_id=message.from_user.id, text=messages['Closed'])
         return
     if message.text == 'Готов':
+        if quote[message.from_user.id]['ready'] >= 3:
+            return
         if message.from_user.id not in started_users \
                 or dbRequests.check_user_in_database(message.from_user.id, cur) == 'User not exists':
             started_users.append(message.from_user.id)
@@ -140,17 +156,39 @@ def get_text_commands(message):
             ask_question(message.from_user.id, message.date)
             return
         elif message.from_user.id in started_users:
+            if quote[message.from_user.id]['started'] >= 4:
+                return
             bot.send_message(chat_id=message.from_user.id, text=messages['Already_started'])
+            quote[message.from_user.id]['started'] += 1
             return
         elif message.from_user.id in finished:
+            if quote[message.from_user.id]['done'] >= 4:
+                return
             bot.send_message(chat_id=message.from_user.id, text=messages['Already_done'])
+            quote[message.from_user.id]['done'] += 1
             return
+        quote[message.from_user.id]['ready'] += 1
     get_text(message)
 
 
 @bot.message_handler(content_types=['contact'])
 def update_phone(message):
-    print(message.contact.phone_number)
+    if not opened:
+        if quote[message.from_user.id]['closed'] >= 2:
+            return
+        bot.send_message(chat_id=message.from_user.id, text=messages['Closed'])
+        quote[message.from_user.id]['closed'] += 1
+        return
+    if quote[message.from_user.id]['contact'] >= 3:
+        return
+    if message.from_user.id != message.contact.user_id or not message.contact.user_id:
+        return
+    if message.from_user.id not in started_users \
+            or dbRequests.check_user_in_database(message.from_user.id, cur) == 'User not exists':
+        return
+    finished[message.from_user.id]['phone'] = message.contact.phone_number
+    dbRequests.update_phone(message.from_user.id, message.contact.phone_number, cur)
+    quote[message.from_user.id]['contact'] += 1
 
 
 def get_text(message):
