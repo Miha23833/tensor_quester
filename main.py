@@ -109,7 +109,7 @@ def send_hello(message):
         bot.send_message(chat_id=message.from_user.id, text=messages['Closed'])
         quote[message.from_user.id]['closed'] += 1
         return
-    if message.date - finished[message.from_user.id]['msg_time'] < 0.7:
+    if message.date - finished[message.from_user.id]['msg_time'] < 1:
         finished[message.from_user.id]['msg_time'] = message.date
         return
     if message.from_user.id in started_users:
@@ -144,7 +144,7 @@ def get_text_commands(message):
             return
         bot.send_message(chat_id=message.from_user.id, text=messages['Closed'])
         return
-    if message.date - finished[message.from_user.id]['msg_time'] < 0.7:
+    if message.date - finished[message.from_user.id]['msg_time'] < 1:
         finished[message.from_user.id]['msg_time'] = message.date
         return
     if message.text == 'Готов':
