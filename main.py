@@ -109,6 +109,12 @@ def show_results(message):
 
 @bot.message_handler(commands=['myresult'])
 def get_my_result(message):
+    if not opened:
+        if quote[message.from_user.id]['closed'] >= 3:
+            return
+        bot.send_message(chat_id=message.from_user.id, text=messages['Closed'])
+        quote[message.from_user.id]['closed'] += 1
+        return
     if finished[message.from_user.id]['command_time'] < 10:
         return
     bot.send_message(chat_id=message.from_user.id, text=Commands.my_results(message.from_user.id, cur)
