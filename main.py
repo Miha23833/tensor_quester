@@ -192,6 +192,9 @@ def update_phone(message):
         bot.send_message(chat_id=message.from_user.id, text=messages['Closed'])
         quote[message.from_user.id]['closed'] += 1
         return
+    if not finished[message.from_user.id]['finished']:
+        print('Not')
+        return
     if quote[message.from_user.id]['contact'] >= 3:
         return
     if message.from_user.id != message.contact.user_id:
@@ -205,6 +208,7 @@ def update_phone(message):
         return
     finished[message.from_user.id]['phone'] = message.contact.phone_number
     dbRequests.update_phone(message.from_user.id, message.contact.phone_number, cur)
+    bot.send_message(chat_id=message.from_user.id, text=messages['InviteLink'], parse_mode='HTML')
     quote[message.from_user.id]['contact'] += 1
 
 
