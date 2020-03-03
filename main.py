@@ -57,7 +57,7 @@ if __name__ == '__main__':
     # разделены по типам и на каждый тип сообщения свой максимум ответов
     quote = {}
     quote = defaultdict(lambda: dict(ready=0, start=0, done=0, contact=0, closed=0, help=0, began=0, phone=0
-                                     , wrong_contact=0)
+                                     , wrong_contact=0, finished=0)
                         , quote)
 
 
@@ -100,6 +100,8 @@ def show_results(message):
     if message.from_user.id not in constants['BOT_ADMINS']:
         return
     response_text = Commands.get_results(cur)
+    if not response_text:
+        return
     if len(response_text) > 4096:
         for x in range(0, len(response_text), 4096):
             bot.send_message(chat_id=message.from_user.id, text=response_text[x:x + 4096], parse_mode='HTML')
@@ -115,9 +117,14 @@ def get_my_result(message):
         bot.send_message(chat_id=message.from_user.id, text=messages['Closed'])
         quote[message.from_user.id]['closed'] += 1
         return
-    if finished[message.from_user.id]['command_time'] < 10:
+    if message.date - finished[message.from_user.id]['command_time'] < 10:
         return
-    bot.send_message(chat_id=message.from_user.id, text=Commands.my_results(message.from_user.id, cur)
+    text = Commands.my_results(message.from_user.id, cur)
+    if not text:
+        return
+    if not finished[message.from_user.id]['finished']:
+        return
+    bot.send_message(chat_id=message.from_user.id, text=text
                      , parse_mode='HTML')
     finished[message.from_user.id]['command_time'] = message.date
 
@@ -139,6 +146,12 @@ def send_hello(message):
             return
         bot.send_message(chat_id=message.from_user.id, text=messages['Closed'])
         quote[message.from_user.id]['closed'] += 1
+        return
+    if finished[message.from_user.id]['finished']:
+        if quote[message.from_user.id]['finished'] >= 4:
+            return
+        bot.send_message(chat_id=message.from_user.id, text=messages['Already_finished'])
+        quote[message.from_user.id]['finished'] += 1
         return
     if message.from_user.id in started_users:
         if quote[message.from_user.id]['start'] >= 4:
@@ -236,7 +249,9 @@ def update_phone(message):
         return
     finished[message.from_user.id]['phone'] = message.contact.phone_number
     dbRequests.update_phone(message.from_user.id, message.contact.phone_number, cur)
-    bot.send_message(chat_id=message.from_user.id, text=messages['InviteLink'], parse_mode='HTML')
+    no_kb = telebot.types.ReplyKeyboardRemove()
+    bot.send_message(chat_id=message.from_user.id, text=messages['InviteLink'], parse_mode='HTML',
+                     reply_markup=no_kb)
     quote[message.from_user.id]['contact'] += 1
 
 

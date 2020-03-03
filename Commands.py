@@ -29,7 +29,10 @@ def get_results(cur):
 Телефон: <b>{3}</b>
 Имя пользователя: {4}\n"""
         result = ''
-        for i in cur.fetchall():
+        record = cur.fetchall()
+        if not record:
+            return None
+        for i in record:
             result = result + (answ_str.format(i.fullname
                                , i.true_answers_count
                                , i.spent_time
@@ -41,7 +44,6 @@ def get_results(cur):
 def my_results(user_id, cur):
     cur.execute(
         """
-        --lc-monetary=en_US
         SELECT 
             ARRAY_LENGTH(true_answers, 1) as true_answers_count,
             to_char(FINISH_TIME - START_TIME, 'HH24:MI:SS') as spent_time,
@@ -55,6 +57,8 @@ def my_results(user_id, cur):
         return None
     else:
         results = cur.fetchone()
+        if not results:
+            return None
         return """Вы ответили правильно на {0} вопросов.
 Время начала теста: {1}
 Время завершения теста: {2}
