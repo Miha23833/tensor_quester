@@ -49,7 +49,8 @@ if __name__ == '__main__':
     # Словарь user_id, которые прошли тест. Нужно для того, чтобы каждый раз не лезть в БД за
     # ответом "Закончил-ли пользователь тест? Есть-ли у нас его телефон? А также пауза между сообщениями - 1.1 секунда"
     finished = {}
-    finished = defaultdict(lambda: dict(finished=False, phone=None, msg_time=time.time() - 1.1)
+    finished = defaultdict(lambda: dict(finished=False, phone=None, msg_time=time.time() - 1.1
+                                        , command_time=time.time() - 10)
                            , finished)
 
     # Квота на ответ бота. При достижении лимита бот пропускает сообщения и не реагирует на них. Они
@@ -92,6 +93,27 @@ def ask_question(user_id, datetime):
     for answer in answers:
         answers_keyboard.row(answer)
     bot.send_message(chat_id=user_id, text=quest_text, reply_markup=answers_keyboard)
+
+
+@bot.message_handler(commands=['results'])
+def show_results(message):
+    if message.from_user.id not in constants['BOT_ADMINS']:
+        return
+    response_text = Commands.get_results(cur)
+    if len(response_text) > 4096:
+        for x in range(0, len(response_text), 4096):
+            bot.send_message(chat_id=message.from_user.id, text=response_text[x:x + 4096], parse_mode='HTML')
+    else:
+        bot.send_message(chat_id=message.from_user.id, text=response_text, parse_mode='HTML')
+
+
+@bot.message_handler(commands=['myresult'])
+def get_my_result(message):
+    if finished[message.from_user.id]['command_time'] < 10:
+        return
+    bot.send_message(chat_id=message.from_user.id, text=Commands.my_results(message.from_user.id, cur)
+                     , parse_mode='HTML')
+    finished[message.from_user.id]['command_time'] = message.date
 
 
 @bot.message_handler(commands=['open', 'close'])
@@ -194,7 +216,6 @@ def update_phone(message):
         quote[message.from_user.id]['closed'] += 1
         return
     if not finished[message.from_user.id]['finished']:
-        print('Not')
         return
     if quote[message.from_user.id]['contact'] >= 3:
         return

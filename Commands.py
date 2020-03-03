@@ -17,16 +17,16 @@ def get_results(cur):
             phone
         FROM
         users
-        ORDER BY true_answers_count, spent_time        
+        ORDER BY true_answers_count DESC, spent_time        
         """)
     if not valid_table([], cur.description):
         return None
     else:
         answ_str = """================================
-{0}:
-Правильных ответов: {1}
-Затраченное время: {2}
-Телефон: {3}
+Имя: {0}:
+Правильных ответов: <b>{1}</b>
+Затраченное время: <b>{2}</b>
+Телефон: <b>{3}</b>
 Имя пользователя: {4}\n"""
         result = ''
         for i in cur.fetchall():
