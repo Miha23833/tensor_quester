@@ -66,8 +66,9 @@ def complete_test(user_id, datetime):
     keyboard = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
     send_phone_button = telebot.types.KeyboardButton(text='Отправить номер телефона', request_contact=True)
     keyboard.add(send_phone_button)
+    bot.send_message(chat_id=user_id, text=messages['Quest_done'])
     bot.send_message(chat_id=user_id
-                     , text=messages['Quest_done']
+                     , text=messages['Ask_for_phone']
                      , reply_markup=keyboard
                      , parse_mode='HTML'
                      , disable_web_page_preview=True)
