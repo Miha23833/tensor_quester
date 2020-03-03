@@ -196,6 +196,12 @@ def get_text_commands(message):
     if message.text == 'Готов':
         if quote[message.from_user.id]['ready'] >= 3:
             return
+        if finished[message.from_user.id]['finished']:
+            if quote[message.from_user.id]['finished'] >= 4:
+                return
+            bot.send_message(chat_id=message.from_user.id, text=messages['Already_finished'])
+            quote[message.from_user.id]['finished'] += 1
+            return
         if message.from_user.id not in started_users \
                 or dbRequests.check_user_in_database(message.from_user.id, cur) == 'User not exists':
             started_users.append(message.from_user.id)
