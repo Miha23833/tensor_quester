@@ -41,11 +41,12 @@ def get_results(cur):
 def my_results(user_id, cur):
     cur.execute(
         """
+        --lc-monetary=en_US
         SELECT 
             ARRAY_LENGTH(true_answers, 1) as true_answers_count,
-            FINISH_TIME - START_TIME as spent_time,
-            FINISH_TIME,
-            START_TIME
+            to_char(FINISH_TIME - START_TIME, 'HH24:MI:SS') as spent_time,
+            to_char(FINISH_TIME, 'DD/MM/YYYY HH24:MI:SS') as finish_time, 
+            to_char(START_TIME, 'DD/MM/YYYY HH24:MI:SS') as start_time 
         FROM USERS U
         WHERE userid = %s
         """, [user_id]
@@ -61,31 +62,3 @@ def my_results(user_id, cur):
                                  , results.start_time
                                  , results.finish_time
                                  , results.spent_time)
-
-constants_keys = ['TOKEN', 'DB_HOST', 'DB_NAME', 'USER', 'PORT', 'DB_PASSWORD', 'DATABASE_URL', 'BOT_ADMINS'
-                  , 'questions_count']
-
-constants = dict()
-config_vars = dict(os.environ.items()).keys()
-
-for key in constants_keys:
-    if key in config_vars:
-        if key == 'BOT_ADMINS':
-            constants[key] = [int(value) for value in os.environ.get(key).split('|')]
-            continue
-        if key == 'questions_count':
-            constants[key] = int(os.environ.get(key))
-            continue
-        constants[key] = os.environ.get(key)
-    else:
-        raise Exception('Variable ' + key + ' not exists')
-
-conn = psycopg2.connect(constants['DATABASE_URL']
-                        , dbname=constants['DB_NAME']
-                        , user='wwmifahmadbqbn'
-                        , password=constants['DB_PASSWORD']
-                        , port=5432
-                        )
-conn.autocommit = True
-cur = conn.cursor(cursor_factory=extras.NamedTupleCursor)
-print(my_results(539249298, cur))
