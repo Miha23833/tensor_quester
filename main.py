@@ -1,4 +1,5 @@
 from collections import defaultdict
+import Commands
 import dbRequests
 import psycopg2
 import psycopg2.extras as extras
@@ -12,7 +13,7 @@ if __name__ == '__main__':
         messages = json.load(file)
 
     constants_keys = ['TOKEN', 'DB_HOST', 'DB_NAME', 'USER', 'PORT', 'DB_PASSWORD', 'DATABASE_URL', 'BOT_ADMINS'
-        , 'questions_count']
+                      , 'questions_count']
     constants = dict()
     config_vars = dict(os.environ.items()).keys()
 
