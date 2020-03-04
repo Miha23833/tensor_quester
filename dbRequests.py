@@ -60,7 +60,7 @@ def ask_question(user_id, cur):
         """
         , [user_id]
     )
-    if not valid_table(['QuestID', 'Text', 'Answers'], cur.description):
+    if not valid_table(['QuestID', 'Text', 'Answers'], cur.description) or cur is None:
         return 'Failed', None
     question = random.choice(list(cur))
 
