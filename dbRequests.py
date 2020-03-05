@@ -56,9 +56,10 @@ def ask_question(user_id, cur):
                 SELECT current_quest
                 FROM "users"
                 WHERE CURRENT_QUEST NOTNULL
+                AND "userid" = %s
             )
         """
-        , [user_id]
+        , [user_id, user_id]
     )
     if not valid_table(['QuestID', 'Text', 'Answers'], cur.description):
         return 'Failed', None
