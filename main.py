@@ -13,7 +13,7 @@ if __name__ == '__main__':
         messages = json.load(file)
 
     constants_keys = ['TOKEN', 'DB_HOST', 'DB_NAME', 'USER', 'PORT', 'DB_PASSWORD', 'DATABASE_URL', 'BOT_ADMINS'
-                      , 'questions_count']
+                      , 'questions_count', 'TIME_ZONE']
     constants = dict()
     config_vars = dict(os.environ.items()).keys()
 
@@ -119,7 +119,7 @@ def get_my_result(message):
         return
     if message.date - finished[message.from_user.id]['command_time'] < 10:
         return
-    text = Commands.my_results(message.from_user.id, cur)
+    text = Commands.my_results(constants['TIME_ZONE'], message.from_user.id, cur)
     if not text:
         finished[message.from_user.id]['command_time'] = message.date
         return

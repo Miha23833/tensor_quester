@@ -39,9 +39,10 @@ def get_results(cur):
         return result
 
 
-def my_results(user_id, cur):
+def my_results(time_zone, user_id, cur):
     cur.execute(
         """
+        SET LOCAL TIMEZONE = %s;
         SELECT 
             ARRAY_LENGTH(true_answers, 1) as true_answers_count,
             to_char(FINISH_TIME - START_TIME, 'HH24:MI:SS') as spent_time,
@@ -50,7 +51,7 @@ def my_results(user_id, cur):
         FROM users
         WHERE userid = %s
         AND finish_time NOTNULL
-        """, [user_id]
+        """, [time_zone, user_id]
     )
     if not valid_table(['true_answers_count', 'start_time', 'finish_time', 'spent_time'], cur.description):
         return None
