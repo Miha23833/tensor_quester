@@ -1,7 +1,4 @@
-import psycopg2
 from dbRequests import valid_table
-import os
-import psycopg2.extras as extras
 
 
 def get_results(cur):
@@ -52,6 +49,7 @@ def my_results(user_id, cur):
             to_char(START_TIME, 'DD/MM/YYYY HH24:MI:SS') as start_time 
         FROM users
         WHERE userid = %s
+        AND finish_time NOTNULL
         """, [user_id]
     )
     if not valid_table(['true_answers_count', 'start_time', 'finish_time', 'spent_time'], cur.description):
