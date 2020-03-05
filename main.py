@@ -41,7 +41,7 @@ if __name__ == '__main__':
     admins = constants['BOT_ADMINS']
     opened = True
 
-    # Массив ID пользователей, которые уже начали тест, но не закончили его. Чтобы не лезть в базу за проверкой
+    # Массив ID пользователей, которые уже начали тест. Чтобы не лезть в базу за проверкой
     started_users = []
     users = dbRequests.get_not_finished_users(cur)
     if users and isinstance(users, list):
@@ -121,8 +121,6 @@ def get_my_result(message):
         return
     text = Commands.my_results(message.from_user.id, cur)
     if not text:
-        return
-    if not finished[message.from_user.id]['finished']:
         return
     bot.send_message(chat_id=message.from_user.id, text=text
                      , parse_mode='HTML')
