@@ -9,14 +9,15 @@ def get_results(cur):
         """
         SELECT
             ARRAY_LENGTH(true_answers, 1) as true_answers_count,
-            USERNAME,
-            FULLNAME,
-            FINISH_TIME - START_TIME as spent_time,
-            FINISH_TIME,
-            START_TIME,
+            username,
+            fullname,
+            finish_time - start_time as spent_time,
+            finish_rime,
+            start_time,
             phone
         FROM
         users
+        WHERE FINISH_TIME NOTNULL
         ORDER BY true_answers_count DESC, spent_time        
         """)
     if not valid_table([], cur.description):
@@ -49,7 +50,7 @@ def my_results(user_id, cur):
             to_char(FINISH_TIME - START_TIME, 'HH24:MI:SS') as spent_time,
             to_char(FINISH_TIME, 'DD/MM/YYYY HH24:MI:SS') as finish_time, 
             to_char(START_TIME, 'DD/MM/YYYY HH24:MI:SS') as start_time 
-        FROM USERS U
+        FROM users
         WHERE userid = %s
         """, [user_id]
     )
