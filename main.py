@@ -121,6 +121,7 @@ def get_my_result(message):
         return
     text = Commands.my_results(message.from_user.id, cur)
     if not text:
+        print('Кладу')
         return
     bot.send_message(chat_id=message.from_user.id, text=text
                      , parse_mode='HTML')
