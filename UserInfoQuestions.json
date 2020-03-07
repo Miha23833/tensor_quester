@@ -1,0 +1,14 @@
+{
+  "faculty": {
+    "column": "faculty",
+    "question": "На каком факультете ты учишься?"
+  },
+  "specialty": {
+    "column": "specialty",
+    "question": "Какая твоя специальность?"
+  },
+  "course": {
+    "column": "course",
+    "question": "На каком ты сейчас курсе?"
+  }
+}

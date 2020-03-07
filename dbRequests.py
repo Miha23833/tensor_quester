@@ -1,6 +1,18 @@
 import psycopg2
+from psycopg2.sql import SQL, Identifier
 import logging
 import random
+
+
+def update_user_info(user_id, text, column, cur):
+    cur.execute(
+        SQL("""
+        UPDATE users
+        SET {} = %s
+        WHERE userid = %s
+        """).format(Identifier(column))
+        , [text, user_id]
+    )
 
 
 def valid_table(columns, description):

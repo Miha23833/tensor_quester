@@ -46,12 +46,16 @@ if __name__ == '__main__':
     users = dbRequests.get_not_finished_users(cur)
     if users and isinstance(users, list):
         started_users = users
+
+    with open('UserInfoQuestions.json', 'r') as file:
+        pre_questions = json.load(file)
     # Словарь user_id, которые прошли тест. Нужно для того, чтобы каждый раз не лезть в БД за
     # ответом "Закончил-ли пользователь тест? Есть-ли у нас его телефон? А также пауза между сообщениями - 1.1 секунда"
+    quest_defaultkeys = {key: None for key in pre_questions.keys()}
+    status_defaultkeys = dict(started=False, finished=False, phone=None, msg_time=time.time() - 1.1, command_time=time.time() - 10)
+    status_defaultkeys.update(quest_defaultkeys)
     finished = {}
-    finished = defaultdict(lambda: dict(finished=False, phone=None, msg_time=time.time() - 1.1
-                                        , command_time=time.time() - 10)
-                           , finished)
+    finished = defaultdict(lambda: status_defaultkeys, finished)
 
     # Квота на ответ бота. При достижении лимита бот пропускает сообщения и не реагирует на них. Они
     # разделены по типам и на каждый тип сообщения свой максимум ответов
@@ -74,6 +78,17 @@ def complete_test(user_id, datetime):
                      , reply_markup=keyboard
                      , parse_mode='HTML'
                      , disable_web_page_preview=True)
+
+
+def ask_user_info(user_id, text):
+    remove_keyboard = telebot.types.ReplyKeyboardRemove()
+    for quest_key in pre_questions.keys():
+        if not finished[user_id][quest_key]:
+            bot.send_message(chat_id=user_id, text=pre_questions[quest_key]['column'], reply_markup=remove_keyboard)
+            dbRequests.update_user_info(user_id, text, quest_key, cur)
+            finished[user_id][quest_key] = True
+            return
+    return True
 
 
 def ask_question(user_id, datetime):
@@ -146,6 +161,24 @@ def send_hello(message):
         bot.send_message(chat_id=message.from_user.id, text=messages['Closed'])
         quote[message.from_user.id]['closed'] += 1
         return
+    if message.date - finished[message.from_user.id]['msg_time'] < 1:
+        finished[message.from_user.id]['msg_time'] = message.date
+        return
+    if message.from_user.id not in started_users \
+            or dbRequests.check_user_in_database(message.from_user.id, cur) == 'User not exists':
+        started_users.append(message.from_user.id)
+        dbRequests.create_user(
+            message.from_user.id
+            , message.from_user.username or 'hidden'
+            , str(message.from_user.first_name) + ' ' + (
+                  message.from_user.last_name if message.from_user.last_name is not None else '[Фамилия отсутствует]')
+            , message.date
+            , cur
+        )
+    if not all(finished[message.from_user.id][quest_key] for quest_key in pre_questions.keys()):
+        bot.send_message(chat_id=message.from_user.id
+                         , text=messages['Ask_for_user_info']+'\n'+pre_questions[list(pre_questions.keys())[0]]['question'])
+        return
     if finished[message.from_user.id]['finished']:
         if quote[message.from_user.id]['finished'] >= 4:
             return
@@ -157,10 +190,6 @@ def send_hello(message):
             return
         bot.send_message(chat_id=message.from_user.id, text=messages['Already_started'])
         quote[message.from_user.id]['start'] += 1
-        return
-    if message.from_user.id in finished[message.from_user.id] \
-            and message.date - finished[message.from_user.id]['msg_time'] < 1:
-        finished[message.from_user.id]['msg_time'] = message.date
         return
     if message.from_user.id in finished and finished[message.from_user.id]['finished']:
         if quote[message.from_user.id]['done'] >= 4:
@@ -193,6 +222,8 @@ def get_text_commands(message):
         finished[message.from_user.id]['msg_time'] = message.date
         return
     if message.text == 'Готов':
+        if not all(finished[message.from_user.id][quest_key] for quest_key in pre_questions.keys()):
+            return
         if quote[message.from_user.id]['ready'] >= 3:
             return
         if finished[message.from_user.id]['finished']:
@@ -200,19 +231,6 @@ def get_text_commands(message):
                 return
             bot.send_message(chat_id=message.from_user.id, text=messages['Already_finished'])
             quote[message.from_user.id]['finished'] += 1
-            return
-        if message.from_user.id not in started_users \
-                or dbRequests.check_user_in_database(message.from_user.id, cur) == 'User not exists':
-            started_users.append(message.from_user.id)
-            dbRequests.create_user(
-                message.from_user.id
-                , message.from_user.username or 'hidden'
-                , str(message.from_user.first_name) + ' ' + (
-                 message.from_user.last_name if message.from_user.last_name is not None else '[Фамилия отсутствует]')
-                , message.date
-                , cur
-            )
-            ask_question(message.from_user.id, message.date)
             return
         elif message.from_user.id in started_users:
             if quote[message.from_user.id]['start'] >= 4:
@@ -227,6 +245,10 @@ def get_text_commands(message):
             quote[message.from_user.id]['done'] += 1
             return
         quote[message.from_user.id]['ready'] += 1
+    if not all(finished[message.from_user.id][quest_key] for quest_key in pre_questions.keys()):
+        ask_user_info(message.from_user.id, message.text)
+        print('False')
+        return
     finished[message.from_user.id]['msg_time'] = message.date
     get_text(message)
 
@@ -255,7 +277,7 @@ def update_phone(message):
     finished[message.from_user.id]['phone'] = message.contact.phone_number
     dbRequests.update_phone(message.from_user.id, message.contact.phone_number, cur)
     no_kb = telebot.types.ReplyKeyboardRemove()
-    bot.send_message(chat_id=message.from_user.id, text=messages['InviteLink'], parse_mode='HTML',
+    bot.send_message(chat_id=message.from_user.id, text=messages['Invite_link'], parse_mode='HTML',
                      reply_markup=no_kb)
     quote[message.from_user.id]['contact'] += 1
 
@@ -268,7 +290,10 @@ def get_text(message):
         return
     if message.from_user.id in finished and finished[message.from_user.id]['finished']:
         return
-
+    if not finished[message.from_user.id]['started']:
+        ask_question(message.from_user.id, message.date)
+        finished[message.from_user.id]['started'] = True
+        return
     res = dbRequests.answer_validation(message.text, message.from_user.id, cur)
     if res == 'Failed':
         return
