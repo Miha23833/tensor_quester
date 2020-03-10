@@ -1,4 +1,5 @@
 import psycopg2
+import json
 import logging
 import random
 
@@ -13,6 +14,44 @@ def valid_table(columns, description):
         return False
 
 
+def update_user_info(user_id, question_id, text, cur):
+    cur.execute(
+        """
+        UPDATE users
+        SET "answered_user_info" = "answered_user_info" || %s
+        WHERE userid = %s
+        """
+        , [json.dumps({question_id: text}), user_id]
+    )
+
+
+def get_user_info_question(user_id, cur):
+    cur.execute(
+        """
+        WITH not_answered_question as 
+        (
+            SELECT COUNT(*)+1 as "PreQuestID"
+            FROM 
+                (SELECT
+                    jsonb_object_keys(ANSWERED_USER_INFO)
+                FROM USERS U
+                WHERE USERID = %s
+                ) AS keys
+        )
+        SELECT "PreQuestID", "Text" FROM not_answered_question
+        INNER JOIN "Pre-questions" USING ("PreQuestID")
+        """
+        , [user_id]
+    )
+    if not valid_table(['PreQuestID', 'Text'], cur.description):
+        return 'Failed'
+    result = cur.fetchone()
+    if not result:
+        return 'Done'
+    update_user_info(user_id, result.PreQuestID, result.Text, cur)
+    return result.Text
+
+
 def create_user(user_id: int, username: str, name: str, start: int, cur):
     cur.execute(
         """
@@ -21,12 +60,14 @@ def create_user(user_id: int, username: str, name: str, start: int, cur):
         , "username"
         , "fullname"
         , "start_time"
+        , "answered_user_info"
         )
         VALUES (
         %s
         , %s
         , %s
         , to_timestamp(%s)
+        , '{}'
         )
         ON CONFLICT DO NOTHING
         """,

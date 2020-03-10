@@ -13,7 +13,7 @@ if __name__ == '__main__':
         messages = json.load(file)
 
     constants_keys = ['TOKEN', 'DB_HOST', 'DB_NAME', 'USER', 'PORT', 'DB_PASSWORD', 'DATABASE_URL', 'BOT_ADMINS'
-                      , 'questions_count', 'TIME_ZONE']
+                      , 'questions_count', 'user_info_answered_count', 'TIME_ZONE']
     constants = dict()
     config_vars = dict(os.environ.items()).keys()
 
@@ -22,7 +22,7 @@ if __name__ == '__main__':
             if key == 'BOT_ADMINS':
                 constants[key] = [int(value) for value in os.environ.get(key).split('|')]
                 continue
-            if key == 'questions_count':
+            if key == 'questions_count' or key == 'user_info_answered_count':
                 constants[key] = int(os.environ.get(key))
                 continue
             constants[key] = os.environ.get(key)
@@ -49,16 +49,36 @@ if __name__ == '__main__':
     # Словарь user_id, которые прошли тест. Нужно для того, чтобы каждый раз не лезть в БД за
     # ответом "Закончил-ли пользователь тест? Есть-ли у нас его телефон? А также пауза между сообщениями - 1.1 секунда"
     finished = {}
-    finished = defaultdict(lambda: dict(finished=False, phone=None, msg_time=time.time() - 1.1
-                                        , command_time=time.time() - 10)
+    finished = defaultdict(lambda: dict(finished=False
+                                        , phone=None
+                                        , msg_time=time.time() - 1.1
+                                        , command_time=time.time() - 10
+                                        , user_info_answered_count=0)
                            , finished)
 
     # Квота на ответ бота. При достижении лимита бот пропускает сообщения и не реагирует на них. Они
     # разделены по типам и на каждый тип сообщения свой максимум ответов
     quote = {}
-    quote = defaultdict(lambda: dict(ready=0, start=0, done=0, contact=0, closed=0, help=0, began=0, phone=0
-                                     , wrong_contact=0, finished=0)
+    quote = defaultdict(lambda: dict(ready=0
+                                     , start=0
+                                     , done=0
+                                     , contact=0
+                                     , closed=0
+                                     , help=0
+                                     , began=0
+                                     , phone=0
+                                     , wrong_contact=0
+                                     , finished=0
+                                     , is_ready_to_give_user_info=0)
                         , quote)
+
+
+def ask_user_info(user_id):
+    text = dbRequests.get_user_info_question(user_id, cur)
+    if not text or text == 'Failed':
+        return
+    bot.send_message(chat_id=user_id, text=text)
+    finished[user_id]['user_info_answered_count'] += 1
 
 
 def complete_test(user_id, datetime):
@@ -146,6 +166,17 @@ def send_hello(message):
         bot.send_message(chat_id=message.from_user.id, text=messages['Closed'])
         quote[message.from_user.id]['closed'] += 1
         return
+    if finished[message.from_user.id]['user_info_answered_count'] < constants['user_info_answered_count']:
+        if quote[message.from_user.id]['is_ready_to_give_user_info'] > 1:
+            return
+        start_message = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+        start_message.row('Готов отвечать')
+        bot.send_message(
+            chat_id=message.chat.id
+            , text=messages['Ask_For_User_Info']
+            , reply_markup=start_message)
+        quote[message.from_user.id]['is_ready_to_give_user_info'] += 1
+        return
     if finished[message.from_user.id]['finished']:
         if quote[message.from_user.id]['finished'] >= 4:
             return
@@ -191,6 +222,13 @@ def get_text_commands(message):
         return
     if message.date - finished[message.from_user.id]['msg_time'] < 1:
         finished[message.from_user.id]['msg_time'] = message.date
+        return
+    if finished[message.from_user.id]['user_info_answered_count'] < constants['user_info_answered_count']:
+        dbRequests.update_user_info(message.from_user.id
+                                    , finished[message.from_user.id]['user_info_answered_count']
+                                    , message.text
+                                    , cur)
+        ask_user_info(message.from_user.id)
         return
     if message.text == 'Готов':
         if quote[message.from_user.id]['ready'] >= 3:
