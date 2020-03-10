@@ -69,7 +69,7 @@ if __name__ == '__main__':
                                      , phone=0
                                      , wrong_contact=0
                                      , finished=0
-                                     , is_ready_to_give_user_info=0)
+                                     , is_ready_to_give_user_info=False)
                         , quote)
 
 
@@ -175,7 +175,6 @@ def send_hello(message):
             chat_id=message.chat.id
             , text=messages['Ask_For_User_Info']
             , reply_markup=start_message)
-        quote[message.from_user.id]['is_ready_to_give_user_info'] += 1
         return
     if finished[message.from_user.id]['finished']:
         if quote[message.from_user.id]['finished'] >= 4:
@@ -223,7 +222,22 @@ def get_text_commands(message):
     if message.date - finished[message.from_user.id]['msg_time'] < 1:
         finished[message.from_user.id]['msg_time'] = message.date
         return
-    if finished[message.from_user.id]['user_info_answered_count'] < constants['user_info_answered_count']:
+    if message.text == 'Готов отвечать' and not quote[message.from_user.id]['is_ready_to_give_user_info']:
+        started_users.append(message.from_user.id)
+        dbRequests.create_user(
+            message.from_user.id
+            , message.from_user.username or 'hidden'
+            , str(message.from_user.first_name) + ' ' + (
+             message.from_user.last_name if message.from_user.last_name is not None else '[Фамилия отсутствует]')
+            , message.date
+            , cur
+        )
+        quote[message.from_user.id]['is_ready_to_give_user_info'] = True
+        ask_user_info(message.from_user.id)
+        return
+    elif message.text == 'Готов отвечать' and quote[message.from_user.id]['is_ready_to_give_user_info']:
+        return
+    if finished[message.from_user.id]['user_info_answered_count'] <= constants['user_info_answered_count']:
         dbRequests.update_user_info(message.from_user.id
                                     , finished[message.from_user.id]['user_info_answered_count']
                                     , message.text
@@ -241,15 +255,6 @@ def get_text_commands(message):
             return
         if message.from_user.id not in started_users \
                 or dbRequests.check_user_in_database(message.from_user.id, cur) == 'User not exists':
-            started_users.append(message.from_user.id)
-            dbRequests.create_user(
-                message.from_user.id
-                , message.from_user.username or 'hidden'
-                , str(message.from_user.first_name) + ' ' + (
-                 message.from_user.last_name if message.from_user.last_name is not None else '[Фамилия отсутствует]')
-                , message.date
-                , cur
-            )
             ask_question(message.from_user.id, message.date)
             return
         elif message.from_user.id in started_users:

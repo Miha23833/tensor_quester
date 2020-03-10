@@ -48,7 +48,6 @@ def get_user_info_question(user_id, cur):
     result = cur.fetchone()
     if not result:
         return 'Done'
-    update_user_info(user_id, result.PreQuestID, result.Text, cur)
     return result.Text
 
 
