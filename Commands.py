@@ -9,7 +9,7 @@ def get_results(cur):
             username,
             fullname,
             finish_time - start_time as spent_time,
-            finish_rime,
+            finish_time,
             start_time,
             phone
         FROM

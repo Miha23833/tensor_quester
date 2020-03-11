@@ -20,9 +20,17 @@ def update_user_info(user_id, question_id, text, cur):
         UPDATE users
         SET "answered_user_info" = "answered_user_info" || %s
         WHERE userid = %s
+        RETURNING 'Success' as "Result"
         """
         , [json.dumps({question_id: text}), user_id]
     )
+    if not valid_table(["Result"], cur.description):
+        return 'Failed'
+    result = cur.fetchone()
+    if not result:
+        return 'Failed'
+    if result.Result == 'Success':
+        return 'Success'
 
 
 def get_user_info_question(user_id, cur):

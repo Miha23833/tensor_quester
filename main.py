@@ -69,13 +69,12 @@ if __name__ == '__main__':
                                      , phone=0
                                      , wrong_contact=0
                                      , finished=0
+                                     , ask_to_give_user_info=0
                                      , is_ready_to_give_user_info=False)
                         , quote)
 
 
 def ask_user_info(user_id):
-    if quote[user_id]['ready'] > 3:
-        return 'Done'
     text = dbRequests.get_user_info_question(user_id, cur)
     if not text or text == 'Failed':
         return
@@ -87,8 +86,9 @@ def ask_user_info(user_id):
             , text=messages['Hello']
             , reply_markup=start_message)
         quote[user_id]['ready'] += 1
-        return
-    bot.send_message(chat_id=user_id, text=text)
+        return 'Done'
+    rm_keyboard = telebot.types.ReplyKeyboardRemove()
+    bot.send_message(chat_id=user_id, text=text, reply_markup=rm_keyboard)
 
 
 def complete_test(user_id, datetime):
@@ -177,7 +177,8 @@ def send_hello(message):
         quote[message.from_user.id]['closed'] += 1
         return
     if finished[message.from_user.id]['user_info_answered_count'] < constants['user_info_answered_count']:
-        if quote[message.from_user.id]['is_ready_to_give_user_info'] > 1:
+        if quote[message.from_user.id]['is_ready_to_give_user_info']\
+                or quote[message.from_user.id]['ask_to_give_user_info'] > 2:
             return
         start_message = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
         start_message.row('Готов отвечать')
@@ -185,6 +186,7 @@ def send_hello(message):
             chat_id=message.chat.id
             , text=messages['Ask_For_User_Info']
             , reply_markup=start_message)
+        quote[message.from_user.id]['ask_to_give_user_info'] += 1
         return
     if finished[message.from_user.id]['finished']:
         if quote[message.from_user.id]['finished'] >= 4:
@@ -244,14 +246,15 @@ def get_text_commands(message):
     if not quote[message.from_user.id]['is_ready_to_give_user_info']:
         return
     if finished[message.from_user.id]['user_info_answered_count'] <= constants['user_info_answered_count']:
-        dbRequests.update_user_info(message.from_user.id
-                                    , finished[message.from_user.id]['user_info_answered_count']
-                                    , message.text
-                                    , cur)
-        ask_user_info(message.from_user.id)
-        finished[message.from_user.id]['user_info_answered_count'] += 1
-        finished[message.from_user.id]['msg_time'] = message.date
-        return
+        responce = dbRequests.update_user_info(message.from_user.id
+                                               , finished[message.from_user.id]['user_info_answered_count']
+                                               , message.text
+                                               , cur)
+        if responce == 'Success':
+            finished[message.from_user.id]['user_info_answered_count'] += 1
+            answer = ask_user_info(message.from_user.id)
+            finished[message.from_user.id]['msg_time'] = message.date
+            return
     if message.text == 'Готов':
         if quote[message.from_user.id]['ready'] >= 3:
             return
