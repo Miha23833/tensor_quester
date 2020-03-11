@@ -53,7 +53,7 @@ if __name__ == '__main__':
                                         , phone=None
                                         , msg_time=time.time() - 1.1
                                         , command_time=time.time() - 10
-                                        , user_info_answered_count=0)
+                                        , user_info_answered_count=1)
                            , finished)
 
     # Квота на ответ бота. При достижении лимита бот пропускает сообщения и не реагирует на них. Они
@@ -237,6 +237,7 @@ def get_text_commands(message):
         )
         quote[message.from_user.id]['is_ready_to_give_user_info'] = True
         ask_user_info(message.from_user.id)
+        finished[message.from_user.id]['msg_time'] = message.date
         return
     elif message.text == 'Готов отвечать' and quote[message.from_user.id]['is_ready_to_give_user_info']:
         return
@@ -249,6 +250,7 @@ def get_text_commands(message):
                                     , cur)
         ask_user_info(message.from_user.id)
         finished[message.from_user.id]['user_info_answered_count'] += 1
+        finished[message.from_user.id]['msg_time'] = message.date
         return
     if message.text == 'Готов':
         if quote[message.from_user.id]['ready'] >= 3:
