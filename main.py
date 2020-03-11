@@ -74,11 +74,21 @@ if __name__ == '__main__':
 
 
 def ask_user_info(user_id):
+    if quote[user_id]['ready'] > 3:
+        return 'Done'
     text = dbRequests.get_user_info_question(user_id, cur)
     if not text or text == 'Failed':
         return
+    if text == 'Done':
+        start_message = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+        start_message.row('Готов')
+        bot.send_message(
+            chat_id=user_id
+            , text=messages['Hello']
+            , reply_markup=start_message)
+        quote[user_id]['ready'] += 1
+        return
     bot.send_message(chat_id=user_id, text=text)
-    finished[user_id]['user_info_answered_count'] += 1
 
 
 def complete_test(user_id, datetime):
@@ -200,12 +210,6 @@ def send_hello(message):
         return
     if quote[message.from_user.id]['start'] >= 4:
         return
-    start_message = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    start_message.row('Готов')
-    bot.send_message(
-        chat_id=message.chat.id
-        , text=messages['Hello']
-        , reply_markup=start_message)
     finished[message.from_user.id]['msg_time'] = message.date
     quote[message.from_user.id]['start'] += 1
 
@@ -223,7 +227,6 @@ def get_text_commands(message):
         finished[message.from_user.id]['msg_time'] = message.date
         return
     if message.text == 'Готов отвечать' and not quote[message.from_user.id]['is_ready_to_give_user_info']:
-        started_users.append(message.from_user.id)
         dbRequests.create_user(
             message.from_user.id
             , message.from_user.username or 'hidden'
@@ -237,12 +240,15 @@ def get_text_commands(message):
         return
     elif message.text == 'Готов отвечать' and quote[message.from_user.id]['is_ready_to_give_user_info']:
         return
+    if not quote[message.from_user.id]['is_ready_to_give_user_info']:
+        return
     if finished[message.from_user.id]['user_info_answered_count'] <= constants['user_info_answered_count']:
         dbRequests.update_user_info(message.from_user.id
                                     , finished[message.from_user.id]['user_info_answered_count']
                                     , message.text
                                     , cur)
         ask_user_info(message.from_user.id)
+        finished[message.from_user.id]['user_info_answered_count'] += 1
         return
     if message.text == 'Готов':
         if quote[message.from_user.id]['ready'] >= 3:
@@ -255,6 +261,7 @@ def get_text_commands(message):
             return
         if message.from_user.id not in started_users \
                 or dbRequests.check_user_in_database(message.from_user.id, cur) == 'User not exists':
+            started_users.append(message.from_user.id)
             ask_question(message.from_user.id, message.date)
             return
         elif message.from_user.id in started_users:
