@@ -53,7 +53,8 @@ if __name__ == '__main__':
                                         , phone=None
                                         , msg_time=time.time() - 1.1
                                         , command_time=time.time() - 10
-                                        , user_info_answered_count=1)
+                                        , user_info_answered_count=1
+                                        , is_ready_to_give_user_info=False)
                            , finished)
 
     # Квота на ответ бота. При достижении лимита бот пропускает сообщения и не реагирует на них. Они
@@ -69,8 +70,7 @@ if __name__ == '__main__':
                                      , phone=0
                                      , wrong_contact=0
                                      , finished=0
-                                     , ask_to_give_user_info=0
-                                     , is_ready_to_give_user_info=False)
+                                     , ask_to_give_user_info=0)
                         , quote)
 
 
@@ -177,7 +177,7 @@ def send_hello(message):
         quote[message.from_user.id]['closed'] += 1
         return
     if finished[message.from_user.id]['user_info_answered_count'] < constants['user_info_answered_count']:
-        if quote[message.from_user.id]['is_ready_to_give_user_info']\
+        if finished[message.from_user.id]['is_ready_to_give_user_info']\
                 or quote[message.from_user.id]['ask_to_give_user_info'] > 2:
             return
         start_message = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -228,7 +228,7 @@ def get_text_commands(message):
     if message.date - finished[message.from_user.id]['msg_time'] < 1:
         finished[message.from_user.id]['msg_time'] = message.date
         return
-    if message.text == 'Готов отвечать' and not quote[message.from_user.id]['is_ready_to_give_user_info']:
+    if message.text == 'Готов отвечать' and not finished[message.from_user.id]['is_ready_to_give_user_info']:
         dbRequests.create_user(
             message.from_user.id
             , message.from_user.username or 'hidden'
@@ -237,13 +237,13 @@ def get_text_commands(message):
             , message.date
             , cur
         )
-        quote[message.from_user.id]['is_ready_to_give_user_info'] = True
+        finished[message.from_user.id]['is_ready_to_give_user_info'] = True
         ask_user_info(message.from_user.id)
         finished[message.from_user.id]['msg_time'] = message.date
         return
-    elif message.text == 'Готов отвечать' and quote[message.from_user.id]['is_ready_to_give_user_info']:
+    elif message.text == 'Готов отвечать' and finished[message.from_user.id]['is_ready_to_give_user_info']:
         return
-    if not quote[message.from_user.id]['is_ready_to_give_user_info']:
+    if not finished[message.from_user.id]['is_ready_to_give_user_info']:
         return
     if finished[message.from_user.id]['user_info_answered_count'] <= constants['user_info_answered_count']:
         responce = dbRequests.update_user_info(message.from_user.id
