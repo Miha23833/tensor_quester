@@ -14,11 +14,42 @@ def valid_table(columns, description):
         return False
 
 
+def init_statistics(cur):
+    cur.execute(
+        """
+        WITH info as (
+            SELECT 
+            JSONB_OBJECT_KEYS(COALESCE (
+                answered_user_info|| '{"Костыль":"Костылямба"}', '{"Костыль":"Костылямба"}')
+            )
+            , array_length("true_answers" || "false_answers", 1) as answered_questions
+            , userid
+            , phone
+            , CASE 
+                WHEN FINISH_TIME ISNULL THEN FALSE 
+                ELSE TRUE 
+              END AS "Finished"
+            FROM USERS 
+        )
+        SELECT DISTINCT ON (USERID)
+        count(*) OVER (PARTITION BY USERID ) as "AnsweredUserInfo"
+        , answered_questions
+        , userid
+        , phone
+        , "Finished"
+        FROM info
+        """)
+    if not valid_table(['AnsweredUserInfo', 'userid', 'phone', 'Finished'], cur.description):
+        return
+    return cur.fetchall()
+
+
 def update_user_info(user_id, question_id, text, cur):
     cur.execute(
         """
         UPDATE users
-        SET "answered_user_info" = "answered_user_info" || %s
+        SET 
+            "answered_user_info" = "answered_user_info" || %s
         WHERE userid = %s
         RETURNING 'Success' as "Result"
         """
@@ -213,6 +244,7 @@ def get_not_finished_users(cur):
         """
         Select array_agg("userid") as "Users"
         FROM "users"
+        WHERE ARRAY_LENGTH(true_answers || false_answers, 1) IS NOT NULL 
         """
     )
     if not valid_table(['Users'], cur.description):

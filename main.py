@@ -56,6 +56,16 @@ if __name__ == '__main__':
                                         , user_info_answered_count=1
                                         , is_ready_to_give_user_info=False)
                            , finished)
+    finished_from_database = dbRequests.init_statistics(cur)
+    for user_info in finished_from_database:
+        if user_info.answered_questions is not None and user_info.answered_questions > 0:
+            started_users.append(user_info.userid)
+        finished[user_info.userid].update({
+            'finished': user_info.Finished
+            , 'phone': user_info.phone
+            , 'user_info_answered_count': user_info.AnsweredUserInfo
+            , 'is_ready_to_give_user_info': True
+        })
 
     # Квота на ответ бота. При достижении лимита бот пропускает сообщения и не реагирует на них. Они
     # разделены по типам и на каждый тип сообщения свой максимум ответов
