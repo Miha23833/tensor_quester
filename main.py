@@ -339,11 +339,32 @@ def callback_inline(call):
     if call.message:
         if call.message.chat.id in finished and time.time() - finished[call.message.chat.id]['will_go'] > 5:
             if call.data == messages['I_Will_Come']:
-                dbRequests.update_will_go(user_id=call.message.chat.id, text=messages['I_Will_Come'], cur=cur)
+                answer = messages['I_Will_Come']
             elif call.data == messages['No_I_Cant']:
-                dbRequests.update_will_go(user_id=call.message.chat.id, text=messages['No_I_Cant'], cur=cur)
+                answer = messages['No_I_Cant']
             elif call.data == messages['I_Will_Think']:
-                dbRequests.update_will_go(user_id=call.message.chat.id, text=messages['I_Will_Think'], cur=cur)
+                answer = messages['I_Will_Think']
+            else:
+                return
+            if answer not in call.message.text:
+                inline_keyboard = telebot.types.InlineKeyboardMarkup()
+                inline_keyboard.add(telebot.types.InlineKeyboardButton(text=messages['I_Will_Come']
+                                                                       , callback_data=messages['I_Will_Come']))
+                inline_keyboard.add(telebot.types.InlineKeyboardButton(text=messages['No_I_Cant']
+                                                                       , callback_data=messages['No_I_Cant']))
+                inline_keyboard.add(telebot.types.InlineKeyboardButton(text=messages['I_Will_Think']
+                                                                       , callback_data=messages['I_Will_Think']))
+
+                dbRequests.update_will_go(user_id=call.message.chat.id, text=answer, cur=cur)
+                bot.edit_message_text(
+                    chat_id=call.message.chat.id, message_id=call.message.message_id
+                    , text=messages['InviteLink']+'*'+'\n\nВаш ответ: '+answer+'*\n'
+                    , parse_mode='Markdown'
+                    , reply_markup=inline_keyboard
+                )
+                bot.answer_callback_query(call.id, text='Спасибо!\nВы все ещё можете поменять свое решение, нажав'
+                                                        ' на соответствующую кнопку'
+                                          , show_alert=True)
             finished[call.message.chat.id]['will_go'] = time.time()
 
 
