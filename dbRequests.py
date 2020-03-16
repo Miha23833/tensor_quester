@@ -57,7 +57,10 @@ def update_user_info(user_id, question_id, text, cur):
     )
     if not valid_table(["Result"], cur.description):
         return 'Failed'
-    result = cur.fetchone()
+    try:
+        result = cur.fetchone()
+    except TypeError:
+        result = None
     if not result:
         return 'Failed'
     if result.Result == 'Success':

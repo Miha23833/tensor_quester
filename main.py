@@ -7,6 +7,8 @@ import telebot
 import json
 import time
 import os
+import emoji
+
 
 if __name__ == '__main__':
     with open('messages.json', 'r') as file:
@@ -238,6 +240,8 @@ def get_text_commands(message):
         return
     if message.date - finished[message.from_user.id]['msg_time'] < 1:
         finished[message.from_user.id]['msg_time'] = message.date
+        return
+    if emoji.emoji_count(message.text) > 0:
         return
     if message.text == 'Готов отвечать' and not finished[message.from_user.id]['is_ready_to_give_user_info']:
         dbRequests.create_user(

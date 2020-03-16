@@ -1,2 +1,3 @@
 pyTelegramBotApi
 psycopg2-binary
+emoji
