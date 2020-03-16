@@ -290,3 +290,14 @@ def update_phone(user_id, phone, cur):
         """,
         [phone, user_id]
     )
+
+
+def update_will_go(user_id, text, cur):
+    cur.execute(
+        """
+        UPDATE users
+        SET willgo = %s
+        WHERE userid = %s
+        """,
+        [text, user_id]
+    )

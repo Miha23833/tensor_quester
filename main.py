@@ -53,6 +53,7 @@ if __name__ == '__main__':
                                         , phone=None
                                         , msg_time=time.time() - 1.1
                                         , command_time=time.time() - 10
+                                        , will_go=time.time() - 5
                                         , user_info_answered_count=1
                                         , is_ready_to_give_user_info=False)
                            , finished)
@@ -320,9 +321,30 @@ def update_phone(message):
     finished[message.from_user.id]['phone'] = message.contact.phone_number
     dbRequests.update_phone(message.from_user.id, message.contact.phone_number, cur)
     no_kb = telebot.types.ReplyKeyboardRemove()
+    bot.send_message(chat_id=message.from_user.id, text='Спасибо!', reply_markup=no_kb)
+    inline_keyboard = telebot.types.InlineKeyboardMarkup()
+    inline_keyboard.add(telebot.types.InlineKeyboardButton(text=messages['I_Will_Come']
+                                                           , callback_data=messages['I_Will_Come']))
+    inline_keyboard.add(telebot.types.InlineKeyboardButton(text=messages['No_I_Cant']
+                                                           , callback_data=messages['No_I_Cant']))
+    inline_keyboard.add(telebot.types.InlineKeyboardButton(text=messages['I_Will_Think']
+                                                           , callback_data=messages['I_Will_Think']))
     bot.send_message(chat_id=message.from_user.id, text=messages['InviteLink'], parse_mode='HTML',
-                     reply_markup=no_kb)
+                     reply_markup=inline_keyboard)
     quote[message.from_user.id]['contact'] += 1
+
+
+@bot.callback_query_handler(func=lambda call: True)
+def callback_inline(call):
+    if call.message:
+        if call.message.chat.id in finished and time.time() - finished[call.message.chat.id]['will_go'] > 5:
+            if call.data == messages['I_Will_Come']:
+                dbRequests.update_will_go(user_id=call.message.chat.id, text=messages['I_Will_Come'], cur=cur)
+            elif call.data == messages['No_I_Cant']:
+                dbRequests.update_will_go(user_id=call.message.chat.id, text=messages['No_I_Cant'], cur=cur)
+            elif call.data == messages['I_Will_Think']:
+                dbRequests.update_will_go(user_id=call.message.chat.id, text=messages['I_Will_Think'], cur=cur)
+            finished[call.message.chat.id]['will_go'] = time.time()
 
 
 def get_text(message):
