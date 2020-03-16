@@ -336,6 +336,8 @@ def update_phone(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
+    if not opened:
+        return
     if call.message:
         if call.message.chat.id in finished and time.time() - finished[call.message.chat.id]['will_go'] > 5:
             if call.data == messages['I_Will_Come']:
@@ -365,7 +367,9 @@ def callback_inline(call):
                 bot.answer_callback_query(call.id, text='Спасибо!\nВы все ещё можете поменять свое решение, нажав'
                                                         ' на соответствующую кнопку'
                                           , show_alert=True)
-            finished[call.message.chat.id]['will_go'] = time.time()
+                finished[call.message.chat.id]['will_go'] = time.time()
+            else:
+                bot.answer_callback_query(call.id)
 
 
 def get_text(message):
